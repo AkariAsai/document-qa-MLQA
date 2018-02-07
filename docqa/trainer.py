@@ -58,7 +58,8 @@ def init(out: ModelDir, model: Model, override=False):
         if os.path.exists(dir):
             if len(os.listdir(dir)) > 0:
                 if override:
-                    print("Clearing %d files/dirs that already existed in %s" % (len(os.listdir(dir)), dir))
+                    print("Clearing %d files/dirs that already existed in %s" %
+                          (len(os.listdir(dir)), dir))
                     shutil.rmtree(dir)
                     os.makedirs(dir)
                 else:
@@ -66,7 +67,8 @@ def init(out: ModelDir, model: Model, override=False):
         else:
             os.makedirs(dir)
 
-    # JSON config just so we always have a human-readable dump of what we are working with
+    # JSON config just so we always have a human-readable dump of what we are
+    # working with
     with open(join(out.dir, "model.json"), "w") as f:
         f.write(configurable.config_to_json(model, indent=2))
 
@@ -174,16 +176,19 @@ def _build_train_ops(train_params):
 
     regularizers = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
     if len(regularizers) > 0:
-        regularization_loss = tf.add_n(regularizers, name="regularization_loss")
+        regularization_loss = tf.add_n(
+            regularizers, name="regularization_loss")
         if train_params.regularization_weight is not None:
-            train_objective = train_objective + regularization_loss * train_params.regularization_weight
+            train_objective = train_objective + regularization_loss * \
+                train_params.regularization_weight
         else:
             train_objective = train_objective + regularization_loss
     else:
         regularization_loss = None
 
     opt = train_params.opt.get()
-    train_opt = opt.apply_gradients(opt.compute_gradients(train_objective), global_step=global_step)
+    train_opt = opt.apply_gradients(opt.compute_gradients(
+        train_objective), global_step=global_step)
 
     if train_params.ema is not None:
         ema = tf.train.ExponentialMovingAverage(decay=train_params.ema)
@@ -207,30 +212,34 @@ def _build_train_ops(train_params):
     if len(to_monitor) > 0:
         monitor_ema = tf.train.ExponentialMovingAverage(decay=train_params.monitor_ema, name="MonitorEMA",
                                                         zero_debias=True)
-        train_opt = tf.group(train_opt, monitor_ema.apply(list(to_monitor.values())))
+        train_opt = tf.group(
+            train_opt, monitor_ema.apply(list(to_monitor.values())))
         summary_tensor = tf.summary.merge(
             [tf.summary.scalar(col, monitor_ema.average(v)) for col, v in to_monitor.items()] +
             [summary_tensor])
 
     # EMA for the loss and what we monitoring
     if train_params.loss_ema is not None:
-        loss_ema = tf.train.ExponentialMovingAverage(decay=train_params.loss_ema, name="LossEMA", zero_debias=True)
+        loss_ema = tf.train.ExponentialMovingAverage(
+            decay=train_params.loss_ema, name="LossEMA", zero_debias=True)
 
         if regularization_loss is None:
             ema_op = loss_ema.apply([loss])
             train_opt = tf.group(train_opt, ema_op)
             ema_var = loss_ema.average(loss)
-            summary_tensor = tf.summary.merge([tf.summary.scalar("training-ema/loss", ema_var), summary_tensor])
+            summary_tensor = tf.summary.merge(
+                [tf.summary.scalar("training-ema/loss", ema_var), summary_tensor])
         else:
             to_track = [loss, train_objective, regularization_loss]
             ema_op = loss_ema.apply(to_track)
             train_opt = tf.group(train_opt, ema_op)
             tensor_vars = [
                 tf.summary.scalar("training-ema/loss", loss_ema.average(loss)),
-                tf.summary.scalar("training-ema/objective", loss_ema.average(train_objective)),
+                tf.summary.scalar("training-ema/objective",
+                                  loss_ema.average(train_objective)),
                 tf.summary.scalar("training-ema/regularization-loss",
                                   loss_ema.average(regularization_loss))
-                ]
+            ]
             summary_tensor = tf.summary.merge([tensor_vars, summary_tensor])
 
     return loss, summary_tensor, train_opt, global_step, ema
@@ -246,10 +255,12 @@ def continue_training(
         dry_run=False):
     """ Train an already existing model, or start for scatch """
     if not exists(out.dir) or os.listdir(out.dir) == 0:
-        start_training(data, model, train_params, evaluators, out, notes, dry_run)
+        start_training(data, model, train_params,
+                       evaluators, out, notes, dry_run)
     else:
         print("Files already exist, loading most recent model")
-        resume_training_with(data, out, train_params, evaluators, notes, dry_run)
+        resume_training_with(data, out, train_params,
+                             evaluators, notes, dry_run)
 
 
 def start_training(
@@ -265,7 +276,8 @@ def start_training(
     if initialize_from is None:
         print("Initializing model at: " + out.dir)
         model.init(data.get_train_corpus(), data.get_resource_loader())
-    # Else we assume the model has already completed its first phase of initialization
+    # Else we assume the model has already completed its first phase of
+    # initialization
 
     if not dry_run:
         init(out, model, False)
@@ -284,7 +296,7 @@ def resume_training(out: ModelDir, notes: str = None, dry_run=False, start_eval=
 
     evaluators = train_params["evaluators"]
     params = train_params["train_params"]
-    params.num_epochs = 24*3
+    params.num_epochs = 24 * 3
 
     if isinstance(train_data, PreprocessedData):
         # TODO don't hard code # of processes
@@ -292,9 +304,11 @@ def resume_training(out: ModelDir, notes: str = None, dry_run=False, start_eval=
 
     latest = tf.train.latest_checkpoint(out.save_dir)
     if latest is None:
-        raise ValueError("No checkpoint to resume from found in " + out.save_dir)
+        raise ValueError(
+            "No checkpoint to resume from found in " + out.save_dir)
 
-    _train(model, train_data, latest, None, False, params, evaluators, out, notes, dry_run, start_eval)
+    _train(model, train_data, latest, None, False, params,
+           evaluators, out, notes, dry_run, start_eval)
 
 
 def resume_training_with(
@@ -309,7 +323,8 @@ def resume_training_with(
         model = pickle.load(f)
     latest = out.get_latest_checkpoint()
     if latest is None:
-        raise ValueError("No checkpoint to resume from found in " + out.save_dir)
+        raise ValueError(
+            "No checkpoint to resume from found in " + out.save_dir)
 
     _train(model, data, latest, None, False,
            train_params, evaluators, out, notes, dry_run)
@@ -341,7 +356,8 @@ def _train(model: Model,
     evaluator_runner = EvaluatorRunner(evaluators, model)
 
     print("Training on %d batches" % len(train))
-    print("Evaluation datasets: " + " ".join("%s (%d)" % (name, len(data)) for name, data in eval_datasets.items()))
+    print("Evaluation datasets: " + " ".join("%s (%d)" % (name, len(data))
+                                             for name, data in eval_datasets.items()))
 
     print("Init model...")
     model.set_inputs([train] + list(eval_datasets.values()), loader)
@@ -360,7 +376,8 @@ def _train(model: Model,
         saver.restore(sess, parameter_checkpoint)
         saver = None
 
-    loss, summary_tensor, train_opt, global_step, _ = _build_train_ops(train_params)
+    loss, summary_tensor, train_opt, global_step, _ = _build_train_ops(
+        train_params)
 
     # Pre-compute tensors we need at evaluations time
     eval_tensors = []
@@ -379,13 +396,15 @@ def _train(model: Model,
     else:
         if parameter_checkpoint is not None:
             print("Initializing training variables...")
-            vars = [x for x in tf.global_variables() if x not in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)]
+            vars = [x for x in tf.global_variables() if x not in tf.get_collection(
+                tf.GraphKeys.TRAINABLE_VARIABLES)]
             sess.run(tf.variables_initializer(vars))
         else:
             print("Initializing parameters...")
             sess.run(tf.global_variables_initializer())
 
-    # Make sure no bugs occur that add to the graph in the train loop, that can cause (eventuall) OOMs
+    # Make sure no bugs occur that add to the graph in the train loop, that
+    # can cause (eventuall) OOMs
     tf.get_default_graph().finalize()
 
     print("Start training!")
@@ -393,14 +412,16 @@ def _train(model: Model,
     on_step = sess.run(global_step)
     if save_start:
         summary_writer.add_graph(sess.graph, global_step=on_step)
-        save_train_start(out.dir, data, on_step, evaluators, train_params, notes)
+        save_train_start(out.dir, data, on_step,
+                         evaluators, train_params, notes)
 
     if train_params.eval_at_zero:
         print("Running evaluation...")
         start_eval = False
         for name, data in eval_datasets.items():
             n_samples = train_params.eval_samples.get(name)
-            evaluation = evaluator_runner.run_evaluators(sess, data, name, n_samples)
+            evaluation = evaluator_runner.run_evaluators(
+                sess, data, name, n_samples)
             for s in evaluation.to_summaries(name + "-"):
                 summary_writer.add_summary(s, on_step)
 
@@ -408,13 +429,15 @@ def _train(model: Model,
     for epoch in range(train_params.num_epochs):
         for batch_ix, batch in enumerate(train.get_epoch()):
             t0 = time.perf_counter()
-            on_step = sess.run(global_step) + 1  # +1 because all calculations are done after step
+            # +1 because all calculations are done after step
+            on_step = sess.run(global_step) + 1
 
             get_summary = on_step % train_params.log_period == 0
             encoded = model.encode(batch, True)
 
             if get_summary:
-                summary, _, batch_loss = sess.run([summary_tensor, train_opt, loss], feed_dict=encoded)
+                summary, _, batch_loss = sess.run(
+                    [summary_tensor, train_opt, loss], feed_dict=encoded)
             else:
                 summary = None
                 _, batch_loss = sess.run([train_opt, loss], feed_dict=encoded)
@@ -434,7 +457,8 @@ def _train(model: Model,
             # occasional saving
             if on_step % train_params.save_period == 0:
                 print("Checkpointing")
-                saver.save(sess, join(out.save_dir, "checkpoint-" + str(on_step)), global_step=global_step)
+                saver.save(sess, join(out.save_dir, "checkpoint-" +
+                                      str(on_step)), global_step=global_step)
 
             # Occasional evaluation
             if (on_step % train_params.eval_period == 0) or start_eval:
@@ -443,13 +467,16 @@ def _train(model: Model,
                 t0 = time.perf_counter()
                 for name, data in eval_datasets.items():
                     n_samples = train_params.eval_samples.get(name)
-                    evaluation = evaluator_runner.run_evaluators(sess, data, name, n_samples)
+                    evaluation = evaluator_runner.run_evaluators(
+                        sess, data, name, n_samples)
                     for s in evaluation.to_summaries(name + "-"):
                         summary_writer.add_summary(s, on_step)
 
-                print("Evaluation took: %.3f seconds" % (time.perf_counter() - t0))
+                print("Evaluation took: %.3f seconds" %
+                      (time.perf_counter() - t0))
 
-    saver.save(sess, relpath(join(out.save_dir, "checkpoint-" + str(on_step))), global_step=global_step)
+    saver.save(sess, relpath(join(out.save_dir, "checkpoint-" +
+                                  str(on_step))), global_step=global_step)
     sess.close()
 
 
@@ -473,14 +500,17 @@ def _train_async(model: Model,
     loader = data.get_resource_loader()
 
     print("Training on %d batches" % len(train))
-    print("Evaluation datasets: " + " ".join("%s (%d)" % (name, len(data)) for name, data in eval_datasets.items()))
+    print("Evaluation datasets: " + " ".join("%s (%d)" % (name, len(data))
+                                             for name, data in eval_datasets.items()))
 
     # spec the model for the given datasets
     model.set_inputs([train] + list(eval_datasets.values()), loader)
     placeholders = model.get_placeholders()
 
-    train_queue = tf.FIFOQueue(train_params.async_encoding, [x.dtype for x in placeholders], name="train_queue")
-    evaluator_runner = AysncEvaluatorRunner(evaluators, model, train_params.async_encoding)
+    train_queue = tf.FIFOQueue(train_params.async_encoding, [
+                               x.dtype for x in placeholders], name="train_queue")
+    evaluator_runner = AysncEvaluatorRunner(
+        evaluators, model, train_params.async_encoding)
     train_enqeue = train_queue.enqueue(placeholders)
     train_close = train_queue.close(True)
 
@@ -495,7 +525,8 @@ def _train_async(model: Model,
     print("Init model...")
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     with sess.as_default():
-        pred = model.get_predictions_for(dict(zip(placeholders, input_tensors)))
+        pred = model.get_predictions_for(
+            dict(zip(placeholders, input_tensors)))
 
     evaluator_runner.set_input(pred)
 
@@ -508,7 +539,8 @@ def _train_async(model: Model,
     print("Setting up model prediction / tf...")
     all_vars = tf.global_variables()
 
-    loss, summary_tensor, train_opt, global_step, weight_ema = _build_train_ops(train_params)
+    loss, summary_tensor, train_opt, global_step, weight_ema = _build_train_ops(
+        train_params)
 
     # Pre-compute tensors we need at evaluations time
     eval_tensors = []
@@ -540,7 +572,8 @@ def _train_async(model: Model,
         print("Initializing parameters...")
         sess.run(tf.global_variables_initializer())
 
-    # Make sure no bugs occur that add to the graph in the train loop, that can cause (eventuall) OOMs
+    # Make sure no bugs occur that add to the graph in the train loop, that
+    # can cause (eventuall) OOMs
     tf.get_default_graph().finalize()
 
     if dry_run:
@@ -550,7 +583,8 @@ def _train_async(model: Model,
 
     if save_start:
         # summary_writer.add_graph(sess.graph, global_step=on_step)
-        save_train_start(out.dir, data, sess.run(global_step), evaluators, train_params, notes)
+        save_train_start(out.dir, data, sess.run(global_step),
+                         evaluators, train_params, notes)
 
     def enqueue_train():
         try:
@@ -586,10 +620,12 @@ def _train_async(model: Model,
                 get_summary = on_step % train_params.log_period == 0
 
                 if get_summary:
-                    summary, _, batch_loss = sess.run([summary_tensor, train_opt, loss], feed_dict=train_dict)
+                    summary, _, batch_loss = sess.run(
+                        [summary_tensor, train_opt, loss], feed_dict=train_dict)
                 else:
                     summary = None
-                    _, batch_loss = sess.run([train_opt, loss], feed_dict=train_dict)
+                    _, batch_loss = sess.run(
+                        [train_opt, loss], feed_dict=train_dict)
 
                 if np.isnan(batch_loss):
                     raise RuntimeError("NaN loss!")
@@ -606,7 +642,8 @@ def _train_async(model: Model,
                 # occasional saving
                 if on_step % train_params.save_period == 0:
                     print("Checkpointing")
-                    saver.save(sess, join(out.save_dir, "checkpoint-" + str(on_step)), global_step=global_step)
+                    saver.save(sess, join(out.save_dir, "checkpoint-" +
+                                          str(on_step)), global_step=global_step)
 
                 # Occasional evaluation
                 if (on_step % train_params.eval_period == 0) or start_eval:
@@ -615,7 +652,8 @@ def _train_async(model: Model,
                     t0 = time.perf_counter()
                     for name, data in eval_datasets.items():
                         n_samples = train_params.eval_samples.get(name)
-                        evaluation = evaluator_runner.run_evaluators(sess, data, name, n_samples, eval_dict)
+                        evaluation = evaluator_runner.run_evaluators(
+                            sess, data, name, n_samples, eval_dict)
                         for s in evaluation.to_summaries(name + "-"):
                             summary_writer.add_summary(s, on_step)
 
@@ -625,16 +663,20 @@ def _train_async(model: Model,
                             if cur_best is None or val > cur_best:
                                 print("Save weights with current best weights (%s vs %.5f)" % (
                                     "None" if cur_best is None else ("%.5f" % cur_best), val))
-                                best_weight_saver.save(sess, join(out.best_weight_dir, "best"), global_step=global_step)
+                                best_weight_saver.save(sess, join(
+                                    out.best_weight_dir, "best"), global_step=global_step)
                                 cur_best = val
 
-                    print("Evaluation took: %.3f seconds" % (time.perf_counter() - t0))
+                    print("Evaluation took: %.3f seconds" %
+                          (time.perf_counter() - t0))
     finally:
-        sess.run(train_close)  # terminates the enqueue thread with an exception
+        # terminates the enqueue thread with an exception
+        sess.run(train_close)
 
     train_enqueue_thread.join()
 
-    saver.save(sess, relpath(join(out.save_dir, "checkpoint-" + str(on_step))), global_step=global_step)
+    saver.save(sess, relpath(join(out.save_dir, "checkpoint-" +
+                                  str(on_step))), global_step=global_step)
     sess.close()
 
 
@@ -644,7 +686,8 @@ def test(model: Model, evaluators, datasets: Dict[str, Dataset], loader, checkpo
     model.set_inputs(list(datasets.values()), loader)
 
     if aysnc_encoding:
-        evaluator_runner = AysncEvaluatorRunner(evaluators, model, aysnc_encoding)
+        evaluator_runner = AysncEvaluatorRunner(
+            evaluators, model, aysnc_encoding)
         inputs = evaluator_runner.dequeue_op
     else:
         evaluator_runner = EvaluatorRunner(evaluators, model)
@@ -678,5 +721,6 @@ def test(model: Model, evaluators, datasets: Dict[str, Dataset], loader, checkpo
 
     dataset_outputs = {}
     for name, dataset in datasets.items():
-        dataset_outputs[name] = evaluator_runner.run_evaluators(sess, dataset, name, sample, {})
+        dataset_outputs[name] = evaluator_runner.run_evaluators(
+            sess, dataset, name, sample, {})
     return dataset_outputs
