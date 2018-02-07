@@ -132,6 +132,12 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
         yield Document(article_ix, article["title"], paragraphs)
 
 
+def create_pred_dataset(pred_filepath):
+    tokenzier = NltkAndPunctTokenizer()
+    pred_data = list(parse_squad_data(pred_filepath, "pred", tokenzier))
+    return pred_data
+
+
 def main():
     parser = argparse.ArgumentParser("Preprocess SQuAD data")
     basedir = join(expanduser("~"), "data", "squad")
