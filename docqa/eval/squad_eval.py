@@ -33,9 +33,6 @@ class RecordSpanPrediction(Evaluator):
         return Evaluation({}, results)
 
 
-# def pred_mode():
-
-
 def main():
     parser = argparse.ArgumentParser(description='Evaluate a model on SQuAD')
     parser.add_argument('model', help='model directory to evaluate')
