@@ -130,7 +130,8 @@ class SquadCorpus(Configurable):
         if not exists(dir):
             makedirs(dir)
         # Add for multilingual QA
-        for name, data in [(SquadCorpus.TRAIN_FILE, train), (SquadCorpus.DEV_FILE, dev), (JA_TEST_FILE, ja_test)]:
+        for name, data in [(SquadCorpus.TRAIN_FILE, train), (SquadCorpus.DEV_FILE, dev),
+                           (SquadCorpus.JA_TEST_FILE, ja_test)]:
             if data is not None:
                 with open(join(dir, name), 'wb') as f:
                     pickle.dump(data, f)
