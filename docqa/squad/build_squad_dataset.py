@@ -163,7 +163,7 @@ def main():
     ja_test = list(parse_squad_data(args.ja_test_file, "ja_test", tokenzier))
 
     print("Saving...")
-    SquadCorpus.make_corpus(train, dev)
+    SquadCorpus.make_corpus(train, dev, ja_test)
     print("Done")
 
 
