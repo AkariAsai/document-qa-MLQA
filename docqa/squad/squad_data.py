@@ -13,8 +13,6 @@ from docqa.data_processing.qa_training_data import ParagraphAndQuestionSpec, Ans
 from docqa.data_processing.span_data import ParagraphSpans
 from docqa.data_processing.word_vectors import load_word_vectors
 from docqa.configurable import Configurable
-# Add function to add a dataset creation method for prediction.
-from docqa.squad.build_squad_dataset import create_pred_dataset
 
 """
 Represent SQuAD data
