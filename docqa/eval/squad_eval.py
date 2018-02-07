@@ -33,6 +33,9 @@ class RecordSpanPrediction(Evaluator):
         return Evaluation({}, results)
 
 
+def pred_mode():
+
+
 def main():
     parser = argparse.ArgumentParser(description='Evaluate a model on SQuAD')
     parser.add_argument('model', help='model directory to evaluate')
@@ -48,9 +51,12 @@ def main():
                         help="Weights to load, can be a checkpoint step or 'latest'")
     # Add ja_test choice to test Multilingual QA dataset.
     parser.add_argument(
-        '-c', '--corpus', choices=["dev", "train", "ja_test"], default="dev")
+        '-c', '--corpus', choices=["dev", "train", "ja_test", "pred"], default="dev")
     parser.add_argument('--no_ema', action="store_true",
                         help="Don't use EMA weights even if they exist")
+    # Add ja_test choice to test Multilingual QA pipeline.
+    parser.add_argument('--pred_filepath', default=None,
+                        help="The csv file path if you try pred mode")
     args = parser.parse_args()
 
     model_dir = ModelDir(args.model)
@@ -58,6 +64,12 @@ def main():
     corpus = SquadCorpus()
     if args.corpus == "dev":
         questions = corpus.get_dev()
+    # Add ja_test choice to test Multilingual QA pipeline.
+    elif args.corpus == "ja_test":
+        questions = corpus.get_ja_test()
+    # This is for prediction mode for MLQA pipeline.
+    elif args.corpus == "pred":
+        questions = corpus.get_pred(args.pred_filepath)
     else:
         questions = corpus.get_train()
     questions = split_docs(questions)
