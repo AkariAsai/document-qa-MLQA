@@ -52,7 +52,7 @@ def main():
     parser.add_argument('--no_ema', action="store_true",
                         help="Don't use EMA weights even if they exist")
     # Add ja_test choice to test Multilingual QA pipeline.
-    parser.add_argument('--pred_filepath', default=None,
+    parser.add_argument('-p', '--pred_filepath', default=None,
                         help="The csv file path if you try pred mode")
     args = parser.parse_args()
 
