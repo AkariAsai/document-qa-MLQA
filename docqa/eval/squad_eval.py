@@ -33,7 +33,7 @@ class RecordSpanPrediction(Evaluator):
         return Evaluation({}, results)
 
 
-def pred_mode():
+# def pred_mode():
 
 
 def main():
