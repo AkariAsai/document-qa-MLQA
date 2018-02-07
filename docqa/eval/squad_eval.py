@@ -11,6 +11,8 @@ from docqa.evaluator import Evaluator, Evaluation, SpanEvaluator
 from docqa.model_dir import ModelDir
 from docqa.squad.squad_data import SquadCorpus, split_docs
 from docqa.utils import transpose_lists, print_table
+# Add function to add a dataset creation method for prediction.
+from docqa.squad.build_squad_dataset import create_pred_dataset
 
 """
 Run an evaluation on squad and record the official output
@@ -66,7 +68,7 @@ def main():
         questions = corpus.get_ja_test()
     # This is for prediction mode for MLQA pipeline.
     elif args.corpus == "pred":
-        questions = corpus.get_pred(args.pred_filepath)
+        questions = create_pred_dataset(args.pred_filepath)
     else:
         questions = corpus.get_train()
     questions = split_docs(questions)

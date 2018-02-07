@@ -216,10 +216,6 @@ class SquadCorpus(Configurable):
     def get_test(self) -> List[Document]:
         return []
 
-    # Add prediction mode for MLQS pipeline.
-    def get_pred(self, pred_filepath) -> List[Document]:
-        return create_pred_dataset(pred_filepath)
-
     def _load(self, file) -> List[Document]:
         if not exists(file):
             return []
