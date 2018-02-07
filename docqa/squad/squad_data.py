@@ -104,13 +104,16 @@ def split_docs(docs: List[Document]) -> List[DocParagraphAndQuestion]:
     for doc in docs:
         for i, para in enumerate(doc.paragraphs):
             for question in para.questions:
-                paras.append(DocParagraphAndQuestion(question.words, question.answer, question.question_id, para))
+                paras.append(DocParagraphAndQuestion(
+                    question.words, question.answer, question.question_id, para))
     return paras
 
 
 class SquadCorpus(Configurable):
     TRAIN_FILE = "train.pkl"
     DEV_FILE = "dev.pkl"
+    # Add for multilingual QA.
+    JA_TEST_FILE = "jatest.pkl"
     NAME = "squad"
 
     VOCAB_FILE = "vocab.txt"
@@ -118,14 +121,16 @@ class SquadCorpus(Configurable):
 
     @staticmethod
     def make_corpus(train: List[Document],
-                    dev: List[Document]):
+                    dev: List[Document],
+                    ja_test: List[Document]):
         dir = join(CORPUS_DIR, SquadCorpus.NAME)
         if isfile(dir) or (exists(dir) and len(listdir(dir))) > 0:
-            raise ValueError("Directory %s already exists and is non-empty" % dir)
+            raise ValueError(
+                "Directory %s already exists and is non-empty" % dir)
         if not exists(dir):
             makedirs(dir)
-
-        for name, data in [(SquadCorpus.TRAIN_FILE, train), (SquadCorpus.DEV_FILE, dev)]:
+        # Add for multilingual QA
+        for name, data in [(SquadCorpus.TRAIN_FILE, train), (SquadCorpus.DEV_FILE, dev), (JA_TEST_FILE, ja_test)]:
             if data is not None:
                 with open(join(dir, name), 'wb') as f:
                     pickle.dump(data, f)
@@ -159,7 +164,8 @@ class SquadCorpus(Configurable):
                             voc.update(x.lower() for x in sent)
                         for question in para.questions:
                             voc.update(x.lower() for x in question.words)
-                            voc.update(x.lower() for x in question.answer.get_vocab())
+                            voc.update(x.lower()
+                                       for x in question.answer.get_vocab())
             voc_list = sorted(list(voc))
             with open(voc_file, "w") as f:
                 for word in voc_list:
@@ -176,13 +182,16 @@ class SquadCorpus(Configurable):
         we cache the pruned vecs on-disk as a .npy file we can re-load quickly.
         """
 
-        vec_file = join(self.dir, word_vec_name + self.WORD_VEC_SUFFIX + ".npy")
+        vec_file = join(self.dir, word_vec_name +
+                        self.WORD_VEC_SUFFIX + ".npy")
         if isfile(vec_file):
-            print("Loading word vec %s for %s from cache" % (word_vec_name, self.name))
+            print("Loading word vec %s for %s from cache" %
+                  (word_vec_name, self.name))
             with open(vec_file, "rb") as f:
                 return pickle.load(f)
         else:
-            print("Building pruned word vec %s for %s" % (self.name, word_vec_name))
+            print("Building pruned word vec %s for %s" %
+                  (self.name, word_vec_name))
             voc = self.get_vocab()
             vecs = load_word_vectors(word_vec_name, voc)
             with open(vec_file, "wb") as f:
@@ -197,6 +206,9 @@ class SquadCorpus(Configurable):
 
     def get_dev(self) -> List[Document]:
         return self._load(join(self.dir, self.DEV_FILE))
+
+    def get_ja_test(self) -> List[Document]:
+        return self._load(join(self.dir, self.JA_TEST_FILE))
 
     def get_test(self) -> List[Document]:
         return []

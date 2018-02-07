@@ -7,7 +7,6 @@ import argparse
 import json
 import sys
 
-
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
     def remove_articles(text):
@@ -50,7 +49,6 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
         scores_for_ground_truths.append(score)
     return max(scores_for_ground_truths)
 
-
 def evaluate(dataset, predictions):
     f1 = exact_match = total = 0
     for article in dataset:
@@ -74,6 +72,46 @@ def evaluate(dataset, predictions):
 
     return {'exact_match': exact_match, 'f1': f1}
 
+
+class OfficialEvaluator:
+    def __init__(self, dataset_file, prediction_file):
+        self.dataset_file = dataset_file
+        self.prediction_file = prediction_file
+
+        with open(self.dataset_file) as dataset_file:
+            dataset_json = json.load(dataset_file)
+            dataset = dataset_json['data']
+        with open(self.prediction_file) as prediction_file:
+            predictions = json.load(prediction_file)
+
+
+        print(json.dumps(self.evaluate(dataset, predictions)))
+
+    def evaluate(self):
+        dataset = self.dataset
+        predictions = self.predictions
+
+        f1 = exact_match = total = 0
+        for article in dataset:
+            for paragraph in article['paragraphs']:
+                for qa in paragraph['qas']:
+                    total += 1
+                    if qa['id'] not in predictions:
+                        message = 'Unanswered question ' + qa['id'] + \
+                                  ' will receive score 0.'
+                        print(message, file=sys.stderr)
+                        continue
+                    ground_truths = list(map(lambda x: x['text'], qa['answers']))
+                    prediction = predictions[qa['id']]
+                    exact_match += metric_max_over_ground_truths(
+                        exact_match_score, prediction, ground_truths)
+                    f1 += metric_max_over_ground_truths(
+                        f1_score, prediction, ground_truths)
+
+        exact_match = 100.0 * exact_match / total
+        f1 = 100.0 * f1 / total
+
+        return {'exact_match': exact_match, 'f1': f1}
 
 if __name__ == '__main__':
     expected_version = '1.1'

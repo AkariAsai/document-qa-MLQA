@@ -36,7 +36,8 @@ class RecordSpanPrediction(Evaluator):
 def main():
     parser = argparse.ArgumentParser(description='Evaluate a model on SQuAD')
     parser.add_argument('model', help='model directory to evaluate')
-    parser.add_argument("-o", "--official_output", type=str, help="where to output an official result file")
+    parser.add_argument("-o", "--official_output", type=str,
+                        help="where to output an official result file")
     parser.add_argument('-n', '--sample_questions', type=int, default=None,
                         help="(for testing) run on a subset of questions")
     parser.add_argument('--answer_bounds', nargs='+', type=int, default=[17],
@@ -45,8 +46,11 @@ def main():
                         help="Batch size, larger sizes can be faster but uses more memory")
     parser.add_argument('-s', '--step', default=None,
                         help="Weights to load, can be a checkpoint step or 'latest'")
-    parser.add_argument('-c', '--corpus', choices=["dev", "train"], default="dev")
-    parser.add_argument('--no_ema', action="store_true", help="Don't use EMA weights even if they exist")
+    # Add ja_test choice to test Multilingual QA dataset.
+    parser.add_argument(
+        '-c', '--corpus', choices=["dev", "train", "ja_test"], default="dev")
+    parser.add_argument('--no_ema', action="store_true",
+                        help="Don't use EMA weights even if they exist")
     args = parser.parse_args()
 
     model_dir = ModelDir(args.model)
@@ -59,11 +63,13 @@ def main():
     questions = split_docs(questions)
 
     if args.sample_questions:
-        np.random.RandomState(0).shuffle(sorted(questions, key=lambda x: x.question_id))
+        np.random.RandomState(0).shuffle(
+            sorted(questions, key=lambda x: x.question_id))
         questions = questions[:args.sample_questions]
 
-    questions.sort(key=lambda x:x.n_context_words, reverse=True)
-    dataset = ParagraphAndQuestionDataset(questions, FixedOrderBatcher(args.batch_size, True))
+    questions.sort(key=lambda x: x.n_context_words, reverse=True)
+    dataset = ParagraphAndQuestionDataset(
+        questions, FixedOrderBatcher(args.batch_size, True))
 
     evaluators = [SpanEvaluator(args.answer_bounds, text_eval="squad")]
     if args.official_output is not None:
@@ -111,10 +117,7 @@ def main():
         with open(args.official_output, "w") as f:
             json.dump(q_id_to_answers, f)
 
+
 if __name__ == "__main__":
     main()
     # tmp()
-
-
-
-

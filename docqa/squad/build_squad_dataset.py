@@ -14,7 +14,7 @@ from docqa.data_processing.text_utils import get_word_span, space_re, NltkAndPun
 from docqa.utils import flatten_iterable
 
 """
-Script to build a corpus from SQUAD training data 
+Script to build a corpus from SQUAD training data
 """
 
 
@@ -52,8 +52,10 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                 # There are actually some multi-sentence questions, so we should have used
                 # tokenizer.tokenize_paragraph_flat here which would have produced slighy better
                 # results in a few cases. However all the results we report were
-                # done using `tokenize_sentence` so I am just going to leave this way
-                question_text = tokenizer.tokenize_sentence(question['question'])
+                # done using `tokenize_sentence` so I am just going to leave
+                # this way
+                question_text = tokenizer.tokenize_sentence(
+                    question['question'])
 
                 answer_spans = []
                 for answer_ix, answer in enumerate(question['answers']):
@@ -62,7 +64,8 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                     answer_start = answer['answer_start']
                     answer_stop = answer_start + len(answer_raw)
 
-                    word_ixs = get_word_span(text_spans, answer_start, answer_stop)
+                    word_ixs = get_word_span(
+                        text_spans, answer_start, answer_stop)
 
                     first_word = flat_text[word_ixs[0]]
                     first_word_span = text_spans[word_ixs[0]]
@@ -74,7 +77,8 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
 
                     # Sanity check to ensure we can rebuild the answer using the word and char indices
                     # Since we might not be able to "undo" the tokenizing exactly we might not be able to exactly
-                    # rebuild 'answer_raw', so just we check that we can rebuild the answer minus spaces
+                    # rebuild 'answer_raw', so just we check that we can
+                    # rebuild the answer minus spaces
                     if len(word_ixs) == 1:
                         if first_word[char_start:char_end] != answer_raw:
                             raise ValueError()
@@ -112,13 +116,15 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                         word_ixs[0], word_ixs[-1],
                         answer_raw)
                     if span.para_word_end >= n_words or \
-                                    span.para_word_start >= n_words:
+                            span.para_word_start >= n_words:
                         raise RuntimeError()
                     answer_spans.append(span)
 
-                questions.append(Question(question['id'], question_text, ParagraphSpans(answer_spans)))
+                questions.append(
+                    Question(question['id'], question_text, ParagraphSpans(answer_spans)))
 
-            paragraphs.append(Paragraph(text, questions, article_ix, para_ix, context, text_spans))
+            paragraphs.append(
+                Paragraph(text, questions, article_ix, para_ix, context, text_spans))
 
         yield Document(article_ix, article["title"], paragraphs)
 
@@ -126,8 +132,13 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
 def main():
     parser = argparse.ArgumentParser("Preprocess SQuAD data")
     basedir = join(expanduser("~"), "data", "squad")
-    parser.add_argument("--train_file", default=join(basedir, "train-v1.1.json"))
+    parser.add_argument(
+        "--train_file", default=join(basedir, "train-v1.1.json"))
     parser.add_argument("--dev_file", default=join(basedir, "dev-v1.1.json"))
+
+    # Add ja_test preprocessing option for multilingual QA tests.
+    parser.add_argument(
+        "--ja_test_file", default=join(basedir, "updated_jq_test.json"))
 
     if not exists(config.CORPUS_DIR):
         mkdir(config.CORPUS_DIR)
@@ -144,6 +155,9 @@ def main():
 
     print("Parsing dev...")
     dev = list(parse_squad_data(args.dev_file, "dev", tokenzier))
+
+    print("Parsing ja_test...")
+    ja_test = list(parse_squad_data(args.ja_test_file, "ha_test", tokenzier))
 
     print("Saving...")
     SquadCorpus.make_corpus(train, dev)
