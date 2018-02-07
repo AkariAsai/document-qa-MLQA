@@ -90,7 +90,7 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                         for word_ix in word_ixs[1:-1]:
                             rebuild += flat_text[word_ix]
                         rebuild += last_word[:char_end]
-                        if rebuild != space_re.sub("", tokenizer.clean_text(answer_raw)):
+                        if rebuild != space_re.sub("", tokenizer.clean_text(answer_raw)) and name != "ja_test":
                             raise ValueError(rebuild + " " + answer_raw)
 
                     # Find the sentence with in-sentence offset
