@@ -83,14 +83,16 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                         # Add a condition since the original ja_test could contain
                         # an answer which cannot find in the translate sentence
                         # since the answers are just directly translate.
-                        if first_word[char_start:char_end] != answer_raw and name != "ja_test":
+                        if first_word[char_start:char_end] != answer_raw \
+                                and name != "ja_test" and name != "pred":
                             raise ValueError()
                     else:
                         rebuild = first_word[char_start:]
                         for word_ix in word_ixs[1:-1]:
                             rebuild += flat_text[word_ix]
                         rebuild += last_word[:char_end]
-                        if rebuild != space_re.sub("", tokenizer.clean_text(answer_raw)) and name != "ja_test":
+                        if rebuild != space_re.sub("", tokenizer.clean_text(answer_raw)) \
+                                and name != "ja_test" and name != "pred":
                             raise ValueError(rebuild + " " + answer_raw)
 
                     # Find the sentence with in-sentence offset
@@ -108,9 +110,11 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                         on_word = next_word
 
                     # Sanity check these as well
-                    if text[sent_start][word_start] != flat_text[word_ixs[0]] and name != "ja_test":
+                    if text[sent_start][word_start] != flat_text[word_ixs[0]] \
+                            and name != "ja_test" and name != "pred":
                         raise RuntimeError()
-                    if text[sent_end][word_end] != flat_text[word_ixs[-1]] and name != "ja_test":
+                    if text[sent_end][word_end] != flat_text[word_ixs[-1]] \
+                            and name != "ja_test" and name != "pred":
                         raise RuntimeError()
 
                     span = ParagraphSpan(
@@ -119,7 +123,8 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
                         word_ixs[0], word_ixs[-1],
                         answer_raw)
                     if span.para_word_end >= n_words or \
-                            span.para_word_start >= n_words and name != "ja_test":
+                            span.para_word_start >= n_words \
+                            and name != "ja_test" and name != "pred":
                         raise RuntimeError()
                     answer_spans.append(span)
 
@@ -134,6 +139,7 @@ def parse_squad_data(source, name, tokenizer, use_tqdm=True) -> List[Document]:
 
 def create_pred_dataset(pred_filepath):
     tokenzier = NltkAndPunctTokenizer()
+    print("Parsing pred corpus...")
     pred_data = list(parse_squad_data(pred_filepath, "pred", tokenzier))
     return pred_data
 
